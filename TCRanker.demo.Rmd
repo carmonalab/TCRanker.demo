@@ -1,0 +1,157 @@
+---
+title: Ranking exhaustion and exhaustion levels of TCRs based on scRNA-seq and scTCR-seq
+  data
+author: "Changsheng Li"
+date: '2022-05-19'
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this study, We used the paired scRNA-seq and scTCR-seq of CD8+ TILs from C57BL/6 (n=4) and PMEL (n=3) mice bearing B16-F10 melanoma tumor from the study by [Carmona et al., OncoImmunology (2020)](https://www.tandfonline.com/doi/full/10.1080/2162402X.2020.1737369)
+
+---
+
+## Preparation
+
+#### Library preparation
+
+Firstly, install TCRanker as well as its dependency
+```{r, message=FALSE, warning=FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("UCell")
+remotes::install_github("carmonalab/scGate")
+remotes::install_github("carmonalab/TCRanker")
+
+library(scGate)
+library(TCRanker)
+```
+
+#### Directory preparation
+```{r, warning=FALSE}
+setwd(getwd())
+inDir <- paste0(getwd(),'/input')
+outDir <- paste0(getwd(),'/output')
+dir.create(inDir)
+dir.create(outDir)
+```
+
+
+## Dataset 
+
+The corresponding GEO id of our dataset is GSE116390.
+
+```{r, cache=TRUE, warning=FALSE}
+projectID <- 'Carmona.B16'
+id <- 'GSE116390'
+dir.create(paste0(inDir, '/', id))
+
+supp <- GEOquery::getGEOSuppFiles(id, baseDir = inDir, fetch_files = F)
+supp$fname
+```
+
+What we need are the expression matrix and TCR matrix:
+
+```{r}
+supp <- supp[c(2,4),]
+```
+
+#### scRNA-seq
+
+Firstly, we load the expression matrix
+
+```{r, cache=TRUE, warning=FALSE}
+for(i in seq_along(supp)){
+    fileDir <- paste0(inDir, '/', id, '/', supp$fname[i])
+    download.file(url = supp$url[i], destfile = fileDir)
+    fileFolder <- sub(".tar.gz", "", fileDir)
+    untar(fileDir, exdir = fileFolder)
+    rownames(supp)[i] <- fileFolder
+}
+
+expMat <- Seurat::Read10X(sub(".tar.*", "", rownames(supp)[2]))
+
+query.b16 <- SeuratObject::CreateSeuratObject(counts = expMat, project = projectID, 
+                                    min.cells = 3, min.features = 50)
+table(substring(colnames(query.b16), 18))
+```
+
+Now we could assign the group name by the sample code. From the GEO description page we could find the correspondence of sample code as followed:
+
+ sample code     1       2       3       4       5       6       7 
+------------- ------- ------- ------- ------- ------- ------- -------
+    group      PMEL1    WT1     WT3    PMEL3   PMEL2    WT2     WT4  
+
+
+
+
+```{r}
+libIDtoSampleID <- c('PMEL1', 'WT1', 'WT3', 'PMEL3', 'PMEL2', 'WT2', 'WT4')
+names(libIDtoSampleID) <- 1:7
+
+query.b16$Sample <- as.factor(libIDtoSampleID[substring(colnames(query.b16), 18)])
+
+table(query.b16$Sample)
+```
+
+Comparing two tables above to have a quick check about whether the sample assignments were correct.
+
+#### scTCR-seq
+
+Secondly, we load the TCR matrix
+
+```{r}
+vdj.list <- list()
+for (sampleID in 1:7) {
+    sample <- libIDtoSampleID[sampleID]
+    vdj <- read.csv(sprintf("%s/%s_VDJ_annotations.csv", 
+                            rownames(supp)[1], sample), as.is = T)
+    vdj$barcode <- paste0(sub("\\d", "", vdj$barcode), sampleID)
+    
+    vdj$raw_clonotype_id <- paste0(vdj$raw_clonotype_id, "-", sampleID)
+    vdj.list[[sampleID]] <- vdj
+}
+
+combined <- scRepertoire::combineTCR(vdj.list, ID = 1:7, sample=libIDtoSampleID, cells = "T-AB", removeNA = T)
+for (i in seq_along(combined)) {
+    combined[[i]] <- scRepertoire::stripBarcode(combined[[i]], column = 1, connector = "_", num_connects = 3)
+}
+query.b16 <- scRepertoire::combineExpression(combined, query.b16, cloneCall = "gene", groupBy = "none")
+query.b16$clonotype <- query.b16$CTaa
+```
+
+---
+
+## TCRanker
+
+Now we could apply TCRanker over our dataset.
+
+In this sample, `tcr` and `group` are the corresponding column names in the Seurat Object.
+Mind that the dataset is CD8+ TILs only so we need to set `filterCell = "None"` to filter cells no more. 
+
+
+```{r, cache=TRUE}
+ranking.B16 <- TCRanker(query = query.b16,
+                        tcr = "clonotype",
+                        group = 'Sample')
+```
+
+```{r, echo=FALSE}
+DT::datatable(ranking.B16)
+```
+
+
+```{r}
+ranking.B16$treatment <- ifelse(grepl("PMEL", ranking.B16$group), "PMEL", "WT")
+baseline <- ranking.B16[ranking.B16$treatment=="PMEL",3][which.max(ranking.B16[ranking.B16$treatment=="PMEL",4])]
+
+```
+
+---
+
+

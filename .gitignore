@@ -48,3 +48,8 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 .DS_Store
+*.gz
+*.tsv
+*.mtx
+*.csv
+scGateDB/scGate_models-master/README.md
