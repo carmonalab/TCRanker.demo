@@ -1,0 +1,26 @@
+#sidebar {
+    background: #292f35;
+  }
+  
+  #postamble {
+    background:#023b74;
+    border-top:solid 10px #292f35;
+  }
+  
+  .title {
+    text-align: left;
+    color: #023b74;
+  }
+  
+  .subtitle {
+    color: #023b74;
+  }
+  
+  h1, h2, h3, h4, h5, h6, legend {
+    color: #0057ae;
+  }
+  
+  #content h2 {
+      background-color: #023b74;
+  }
+  

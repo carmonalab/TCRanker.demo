@@ -1,0 +1,151 @@
+---
+title: 'TCRanker preparation'
+subtitle: 'Preparing input data set of TILs from PMEL mice for TCRanker'
+author: "Changsheng Li"
+date: '2022-05-19'
+css: custom1.css
+output: rmdformats::readthedown
+knit: (function(inputFile, encoding) { 
+      out_dir <- 'doc';
+      rmarkdown::render(inputFile,
+                        encoding=encoding, 
+                        output_file=file.path(dirname(inputFile), out_dir, 'preparation.html')) })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+In this study, We used the paired scRNA-seq and scTCR-seq of CD8+ TILs from C57BL/6 (n=4) and PMEL (n=3) mice bearing B16-F10 melanoma tumor from the study by [Carmona et al., OncoImmunology (2020)](https://www.tandfonline.com/doi/full/10.1080/2162402X.2020.1737369)
+
+---
+
+#  Preparation
+
+We'll need some packages to complete the workflow:
+```{r, message=FALSE, warning=FALSE}
+library(GEOquery)
+library(Seurat)
+library(scRepertoire)
+```
+
+
+And let's make the files tidy.
+```{r, warning=FALSE}
+setwd(getwd())
+inDir <- paste0(getwd(),'/input') # Directory for input files
+outDir <- paste0(getwd(),'/output') # Director for output files
+dir.create(inDir)
+dir.create(outDir)
+```
+
+---
+
+# Data Set 
+
+The corresponding GEO id of our data set is [GSE116390](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi).
+
+```{r, cache=TRUE, warning=FALSE}
+projectID <- 'Carmona.B16'
+id <- 'GSE116390'
+dir.create(paste0(inDir, '/', id))
+
+supp <- getGEOSuppFiles(id, baseDir = inDir, fetch_files = F)
+supp$fname
+```
+
+Among what we have in the supplementary files, what we need are the expression matrix and TCR matrix:
+```{r}
+supp <- supp[c(2,4),]
+```
+
+---
+
+# scRNA-seq
+
+Firstly, we load the expression matrix:
+
+```{r, cache=TRUE, warning=FALSE}
+for(i in seq_along(supp)){
+    fileDir <- paste0(inDir, '/', id, '/', supp$fname[i])
+    download.file(url = supp$url[i], destfile = fileDir)
+    fileFolder <- sub(".tar.gz", "", fileDir)
+    untar(fileDir, exdir = fileFolder)
+    rownames(supp)[i] <- fileFolder
+} #Downloading and decompressing the file, might be different for other entries with different directory structures.
+
+expMat <- Read10X(sub(".tar.*", "", rownames(supp)[2]))
+
+query.b16 <- CreateSeuratObject(counts = expMat, project = projectID, 
+                                    min.cells = 3, min.features = 50)
+table(substring(colnames(query.b16), 18))
+```
+Table 1
+
+Now we could assign the group name by the sample code. From the GEO description page we could find the correspondence of sample code as followed:
+
+|sample code|1    |2  |3  |4    |5    |6  |7  |
+|:----------|:----|:--|:--|:----|:----|:--|:--|
+|group      |PMEL1|WT1|WT3|PMEL3|PMEL2|WT2|WT4|
+<center>
+Table 2
+</center>
+\
+
+```{r, cache=TRUE}
+libIDtoSampleID <- c('PMEL1', 'WT1', 'WT3', 'PMEL3', 'PMEL2', 'WT2', 'WT4')
+names(libIDtoSampleID) <- 1:7
+
+query.b16$Sample <- as.factor(libIDtoSampleID[substring(colnames(query.b16), 18)])
+
+table(query.b16$Sample)
+```
+Table 3
+
+Comparing three tables above, we know that the sample ID assignments were correct.
+
+# scTCR-seq
+
+Secondly, we load the TCR matrix:
+
+```{r, cache=TRUE}
+vdj.list <- list()
+for (sampleID in 1:7) {
+    sample <- libIDtoSampleID[sampleID]
+    vdj <- read.csv(sprintf("%s/%s_VDJ_annotations.csv", 
+                            rownames(supp)[1], sample), as.is = T)
+    vdj$barcode <- paste0(sub("\\d", "", vdj$barcode), sampleID)
+    
+    vdj$raw_clonotype_id <- paste0(vdj$raw_clonotype_id, "-", sampleID) #Reassign sample ID to the barcodes
+    vdj.list[[sampleID]] <- vdj
+}
+
+#Combine α and β chains (cdr3 segments)
+combined <- combineTCR(vdj.list, ID = 1:7, sample=libIDtoSampleID, cells = "T-AB", removeNA = T, filterMulti=T)
+
+#Strip barcodes
+for (i in seq_along(combined)) {
+    combined[[i]] <- stripBarcode(combined[[i]], column = 1, connector = "_", num_connects = 3)
+}
+```
+
+Now we can combine the scTCR-seq data into the Seurat object
+```{r}
+query.b16 <- combineExpression(combined, query.b16, cloneCall = "gene", groupBy = "none")
+query.b16$clonotype <- query.b16$CTaa
+```
+
+```{r}
+#Save the RDS for later usage
+saveRDS(query.b16, file = paste0(outDir,'/query.b16.RDS'))
+```
+
+---
+
+Now we have the data set prepared in the format of Seurat object.
+
+For the demonstration of how to use the TCRanker package, you can check [TCRanker demonstration](https://carmonalab.github.io/TCRanker.demo/demo.html).
+
+

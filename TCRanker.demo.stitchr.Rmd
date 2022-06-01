@@ -1,0 +1,105 @@
+---
+title: "TCRanker to stitchr"
+subtitle: ""
+author: "Changsheng Li"
+date: '2022-05-19'
+css: custom3.css
+output: rmdformats::readthedown
+knit: (function(inputFile, encoding) { 
+      out_dir <- 'doc';
+      rmarkdown::render(inputFile,
+                        encoding=encoding, 
+                        output_file=file.path(dirname(inputFile), out_dir, 'stitchr.html')) })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+In this demonstration, We used the result of TCRanker from paired scRNA-seq and scTCR-seq of CD8^+^ TILs from C57BL/6 (n=4) and PMEL (n=3) mice bearing B16-F10 melanoma tumor from the study by [Carmona et al., OncoImmunology (2020)](https://www.tandfonline.com/doi/full/10.1080/2162402X.2020.1737369)
+
+We'll use `stitchr` by [Heather et al., Nucleic Acids Research (2022)](https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkac190/6553689) to assemble the full nucleotide sequence of TCRs.
+
+From the instruction of stitchr on [Github page](https://github.com/JamieHeather/stitchr), 
+
+---
+
+# Data Set
+
+To know how to use TCRanker, please refer [TCRanker demonstration](https://carmonalab.github.io/TCRanker.demo/demo.html).
+
+```{r}
+setwd(getwd())
+inDir <- paste0(getwd(),'/input') # Directory for input files
+outDir <- paste0(getwd(),'/output') # Director for output files
+query.b16 <- readRDS(file = paste0(outDir,'/query.b16.RDS'))
+ranking.b16 <- readRDS(file = paste0(outDir,'/ranking.b16.RDS'))
+```
+
+# Format Conversion
+
+Here is an illustration based on our data set specifically. You might need to 
+adjust the workflow a bit according to the format in detail of your data at hand.
+
+In our sample data set. There are full strings of genes and cdr3 sequence in the
+column `CTstrict`.
+
+```{r}
+get.genes <- function(clonotype, query){
+    CTstrict <- query$CTstrict[query$clonotype==clonotype & !is.na(query$clonotype)]
+    genes <- unique(CTstrict)
+    genes <- strsplit(genes, split = c("_"))
+    gene.seq <- c(strsplit(genes[[1]][1],split = ".", fixed = T)[[1]], 
+               genes[[1]][2],
+               strsplit(genes[[1]][3],split = ".", fixed = T)[[1]],
+               genes[[1]][4])
+    return(gene.seq)
+}
+gene.list <- vapply(ranking.b16$clonotype, FUN = get.genes, FUN.VALUE = character(9), query=query.b16)
+```
+
+Stitchr support high-throughput on multiple and paired TCRs. And the required format is as followed 
+
+```{r}
+stitchr.input <- data.frame(TCR_name = colnames(gene.list),
+                            TRAV = gene.list[1,],
+                            TRAJ = gene.list[2,],
+                            TRA_CDR3 = gene.list[4,],
+                            TRBV = gene.list[5,],
+                            TRBJ = gene.list[6,],
+                            TRB_CDR3 = gene.list[9,],
+                            TRAC = gene.list[3,],
+                            TRBC = gene.list[8,],
+                            TRA_leader = rep("", ncol(gene.list)),
+                            TRB_leader = rep("", ncol(gene.list)),
+                            Linker = rep("", ncol(gene.list)),
+                            Link_order = rep("", ncol(gene.list)),
+                            TRA_5_prime_seq = rep("", ncol(gene.list)),
+                            TRA_3_prime_seq = rep("", ncol(gene.list)),
+                            TRB_5_prime_seq = rep("", ncol(gene.list)),
+                            TRB_3_prime_seq = rep("", ncol(gene.list)))
+```
+
+```{r, echo=FALSE}
+DT::datatable(stitchr.input)
+```
+
+Make sure you have all the columns as above. Stitchr is very strict concerning the input format.
+
+```{r}
+write.table(stitchr.input, file = paste0(inDir, "/stitchr.input.tsv"), 
+            row.names = F, sep = "\t", quote = F)
+```
+
+Now with `stitchr.input.tsv` file, you can run [thimble.py](https://github.com/JamieHeather/stitchr#Thimble) (script from stitchr to run with multiple TCRs). 
+
+Make sure you have changed your directory to the /Scripts as required by stitchr.
+
+An example:
+```{bash, eval=FALSE}
+python3 thimble.py -in ~/TCRanker.demo/input/stitchr.input.tsv -o ~/TCRanker.demo/output/stitchr.output.tsv
+```
+
+

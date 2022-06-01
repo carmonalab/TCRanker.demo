@@ -1,26 +1,30 @@
 ---
-title: Ranking exhaustion and exhaustion levels of TCRs based on scRNA-seq and scTCR-seq
-  data
+title: 'TCRanker demonstration'
+subtitle: 'Ranking clonal exhaustion and proliferation levels of TILs from PMEL mice'
 author: "Changsheng Li"
 date: '2022-05-19'
+css: custom2.css
 output: rmdformats::readthedown
+knit: (function(inputFile, encoding) { 
+      out_dir <- 'doc';
+      rmarkdown::render(inputFile,
+                        encoding=encoding, 
+                        output_file=file.path(dirname(inputFile), out_dir, 'demo.html')) })
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
+# Introduction
 
-In this study, We used the paired scRNA-seq and scTCR-seq of CD8+ TILs from C57BL/6 (n=4) and PMEL (n=3) mice bearing B16-F10 melanoma tumor from the study by [Carmona et al., OncoImmunology (2020)](https://www.tandfonline.com/doi/full/10.1080/2162402X.2020.1737369)
+In this demonstration, We used the paired scRNA-seq and scTCR-seq of CD8^+^ TILs from C57BL/6 (n=4) and PMEL (n=3) mice bearing B16-F10 melanoma tumor from the study by [Carmona et al., OncoImmunology (2020)](https://www.tandfonline.com/doi/full/10.1080/2162402X.2020.1737369)
 
 ---
 
-## Preparation
+#  Library Preparation
 
-#### Library preparation
-
-Firstly, install TCRanker as well as its dependency
+Firstly, install TCRanker as well as its dependency [UCell](https://bioconductor.org/packages/release/bioc/html/UCell.html) and [scGate](https://github.com/carmonalab/scGate).
 ```{r, message=FALSE, warning=FALSE}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -32,126 +36,201 @@ library(scGate)
 library(TCRanker)
 ```
 
-#### Directory preparation
-```{r, warning=FALSE}
+And we'll need some other packages to complete the workflow:
+```{r}
+library(Seurat)
+```
+
+# Data Set
+
+To know how to prepare the input data set for TCRanker, please refer [TCRanker preparation](https://carmonalab.github.io/TCRanker.demo/preparation.html).
+
+```{r}
 setwd(getwd())
-inDir <- paste0(getwd(),'/input')
-outDir <- paste0(getwd(),'/output')
-dir.create(inDir)
-dir.create(outDir)
-```
-
-
-## Dataset 
-
-The corresponding GEO id of our dataset is GSE116390.
-
-```{r, cache=TRUE, warning=FALSE}
-projectID <- 'Carmona.B16'
-id <- 'GSE116390'
-dir.create(paste0(inDir, '/', id))
-
-supp <- GEOquery::getGEOSuppFiles(id, baseDir = inDir, fetch_files = F)
-supp$fname
-```
-
-What we need are the expression matrix and TCR matrix:
-
-```{r}
-supp <- supp[c(2,4),]
-```
-
-#### scRNA-seq
-
-Firstly, we load the expression matrix
-
-```{r, cache=TRUE, warning=FALSE}
-for(i in seq_along(supp)){
-    fileDir <- paste0(inDir, '/', id, '/', supp$fname[i])
-    download.file(url = supp$url[i], destfile = fileDir)
-    fileFolder <- sub(".tar.gz", "", fileDir)
-    untar(fileDir, exdir = fileFolder)
-    rownames(supp)[i] <- fileFolder
-}
-
-expMat <- Seurat::Read10X(sub(".tar.*", "", rownames(supp)[2]))
-
-query.b16 <- SeuratObject::CreateSeuratObject(counts = expMat, project = projectID, 
-                                    min.cells = 3, min.features = 50)
-table(substring(colnames(query.b16), 18))
-```
-
-Now we could assign the group name by the sample code. From the GEO description page we could find the correspondence of sample code as followed:
-
- sample code     1       2       3       4       5       6       7 
-------------- ------- ------- ------- ------- ------- ------- -------
-    group      PMEL1    WT1     WT3    PMEL3   PMEL2    WT2     WT4  
-
-
-
-
-```{r}
-libIDtoSampleID <- c('PMEL1', 'WT1', 'WT3', 'PMEL3', 'PMEL2', 'WT2', 'WT4')
-names(libIDtoSampleID) <- 1:7
-
-query.b16$Sample <- as.factor(libIDtoSampleID[substring(colnames(query.b16), 18)])
-
-table(query.b16$Sample)
-```
-
-Comparing two tables above to have a quick check about whether the sample assignments were correct.
-
-#### scTCR-seq
-
-Secondly, we load the TCR matrix
-
-```{r}
-vdj.list <- list()
-for (sampleID in 1:7) {
-    sample <- libIDtoSampleID[sampleID]
-    vdj <- read.csv(sprintf("%s/%s_VDJ_annotations.csv", 
-                            rownames(supp)[1], sample), as.is = T)
-    vdj$barcode <- paste0(sub("\\d", "", vdj$barcode), sampleID)
-    
-    vdj$raw_clonotype_id <- paste0(vdj$raw_clonotype_id, "-", sampleID)
-    vdj.list[[sampleID]] <- vdj
-}
-
-combined <- scRepertoire::combineTCR(vdj.list, ID = 1:7, sample=libIDtoSampleID, cells = "T-AB", removeNA = T)
-for (i in seq_along(combined)) {
-    combined[[i]] <- scRepertoire::stripBarcode(combined[[i]], column = 1, connector = "_", num_connects = 3)
-}
-query.b16 <- scRepertoire::combineExpression(combined, query.b16, cloneCall = "gene", groupBy = "none")
-query.b16$clonotype <- query.b16$CTaa
+outDir <- paste0(getwd(),'/output') # Director for output files
+query.b16 <- readRDS(file = paste0(outDir,'/query.b16.RDS'))
 ```
 
 ---
 
-## TCRanker
+# TCRanker
 
-Now we could apply TCRanker over our dataset.
+Now we could apply TCRanker over our data set.
 
-In this sample, `tcr` and `group` are the corresponding column names in the Seurat Object.
-Mind that the dataset is CD8+ TILs only so we need to set `filterCell = "None"` to filter cells no more. 
+The output data frame would have the following columns:
 
+| columns | description
+|:--------|:--------------
+|clonotype|Clonotypes, the form depends on the input
+|group    |Group info., optional, depends on whether in the input
+|size     |Clonal size, the count of cells, also group-related (if provided)
+|freq     |Clonal frequency, also group-related (if provided)
+|score 1  |Clonal state score by the first gene signature 
+|ranking 1|Clonal state ranking by the first gene signature 
+|score 2  |Clonal state score by the second gene signature
+|ranking 2|Clonal state ranking by the second gene signature 
+|...      |More scores and rankings... (if more custom gene signatures provided)
+<center>
+Table 1
+</center>
+\
+
+### Parameters: `query`， `tcr`, `filterCell`, `exhaustion` and `proliferation`
+
+Firstly, let's see the default behaviours of TCRanker with only basic parameters
+provided.
+
+Query is the Seurat or SingleCellExperiment object with the expression matrix
+and, optimally, TCR as well.
+
+Besides the query data set, the column names of TCR clonotype in meta.data also 
+need to be specified. It's also possible to present the clonotype as a separated 
+vector, but such practice is not recommended.
 
 ```{r, cache=TRUE}
-ranking.B16 <- TCRanker(query = query.b16,
-                        tcr = "clonotype",
-                        group = 'Sample')
+ranking.B16 <- TCRanker(query = query.b16, tcr = "clonotype")
 ```
+
+As shown above, by default, TCRanker will filter the CD8^+^ T cells first. 
+It could be disabled by setting `filterCell='none'`. If you are interested,
+you could also choose `filterCell='CD4T'`; `filterCell='NK'` or any other 
+pre-defined models provided by [scGate](https://github.com/carmonalab/scGate)
+
+We know that our data set contains CD8^+^ T cells only (and it's proven by how
+little amount of cells filtered). So we'll set `filterCell='none'` in later
+demonstration.
+
+And this is the output data frame we'd have:
 
 ```{r, echo=FALSE}
 DT::datatable(ranking.B16)
 ```
+<center>
+Table 2  
+</center>
+\
 
+As shown above, by default, TCRanker provides the scores and rankings for 
+exhaustion and proliferation. You could exclude any of them simply by setting
+`exhaustion=FALSE` and `proliferation=FALSE`. Please be noted that it is 
+mandatory to have at least one set of gene signature. So if you exclude both of
+them, make sure to provide a custom gene signature instead.
 
-```{r}
-ranking.B16$treatment <- ifelse(grepl("PMEL", ranking.B16$group), "PMEL", "WT")
-baseline <- ranking.B16[ranking.B16$treatment=="PMEL",3][which.max(ranking.B16[ranking.B16$treatment=="PMEL",4])]
+### Parameters: `group`, `minClonSize`
 
+The parameter group would lead TCRanker to add a column of group and, 
+sequentially, sub-divide the entry by the group, (i.e. the same clonotype might 
+be divided into two or more sub-group and listed separately in the output if the
+cells with the same TCR clonotype are from different groups.)
+
+It's optional, yet recommended to be included in order to obtain more meaningful
+result if your data is from multiple individuals or sample groups.
+
+```{r, cache=TRUE, message=FALSE}
+ranking.b16 <- TCRanker(query = query.b16, tcr = "clonotype", 
+                        group = "Sample", filterCell = "none",
+                        proliferation = F)
 ```
 
+
+```{r, echo=FALSE}
+DT::datatable(ranking.b16)
+```
+<center>
+Table 3  
+</center>
+\
+
+This is the output with group. You should have noticed that, despite of having
+group to sub-divide the same clonotype, the number of entries in table 3 is
+even smaller than table 2. This is due to `minClonSize=5` setting as default.
+When sub-divided into smaller clonal groups, some of them might fall below the
+threshold of 5 cells to be considered as meaningfully expanded. The number is
+changeable.
+
+### Parameters: `signature`
+
+In order to extend the functionality, custom gene signatures are also allowed
+to analyse more wanted clonal states.
+
+The default signatures should be in the 
+
+Here we use the signature of CD8^+^ naive-like and precursor-exhausted 
+[Andreatta et al., 2021](https://www.nature.com/articles/s41467-021-23324-4)
+as examples:
+
+```{r, cache=TRUE, message=FALSE}
+naiveLike <- c('Ccr7', 'Il7r', 'Sell', 'Tcf7', 'Txk', 'S1pr1', 'Lef1', 'Satb1')
+
+Tpex <- c('Lag3', 'Xcl1', 'Crtam', 'Ifng', 'Ccl4', 'Pdcd1', 'Dusp4', 'Cd8a', 
+          'Zeb2', 'Nr4a2', 'Sla', 'Nkg7', 'Tigit', 'Ctsw', 'Tnfrsf9', 'Tox',
+          'Lyst', 'Tnfsf4', 'Ccl3', 'Gzmb', 'Rab27a', 'Prf1', 'Cd70', 'Plscr1',
+          'Cxcl13')
+
+customSignatures <- list(naiveLike = naiveLike, Tpex = Tpex)
+```
+Wrap your custom signatures in a list. And remember to name the entries to avoid
+ambiguity in the output. 
+
+Having only one set of signature, you could also use a simple vector, and the 
+state would be called "user" in the output.
+
+```{r, cache=TRUE, message=FALSE}
+ranking.b16 <- TCRanker(query = query.b16, tcr = "clonotype", 
+                        group = "Sample", filterCell = "none",
+                        signature = customSignatures)
+```
+
+```{r}
+#Save the RDS for later usage
+saveRDS(ranking.b16, file = paste0(outDir,'/ranking.b16.RDS'))
+```
+
+```{r, echo=FALSE}
+DT::datatable(ranking.b16)
+```
+<center>
+Table 4
+</center>
+\
+
+### Other parameters
+
+- `keepObject`:
+Logical, to return the `SingleCellExperiment/Saurat` object after cell filtering
+or not (returned together with the ranking data frame in a list). FALSE by 
+default.
+
+- `assay`: 	
+Name of expression data assay, By default "counts" for `SingleCellExperiment` 
+and "RNA" for `Seurat`.
+
+- `species`:
+Charactor, "mouse" or "human", will be auto-detected if omitted. Currently only
+these two are supported.
+
+- `FUN`:
+Function used to aggregate scores of the same clonotype. It could be mean, 
+median or customized functions that take a numeric vector or list as input and 
+return a single numeric. By default, it uses "mean".
+
+- `strictFilter`:
+Logical, to exclude impure cells in pure clonotype or not. Only valid when
+`filterCell` is on. TRUE by default.
+
 ---
+
+Now we have the clonal ranking of a certain cell state. In order to bridge the
+current format of clonotypes with further lab validation or comparison, you
+might need to assemble the TCR to the full sequence instead of a simple
+combination of cdr3 chains.
+
+There should be plenty of tool available. For the demonstration of how to 
+generate the full sequence with `stitchr` by [Heather et al., Nucleic Acids Research (2022)](https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkac190/6553689),
+you can check [TCRanker.stitchr](https://carmonalab.github.io/TCRanker.demo/stitchr.html).
+
+
+
+
 
 

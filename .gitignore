@@ -53,3 +53,5 @@ rsconnect/
 *.mtx
 *.csv
 scGateDB/scGate_models-master/README.md
+output/query.b16.RDS
+output/ranking.b16.RDS
