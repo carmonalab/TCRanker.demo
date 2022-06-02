@@ -4057,12 +4057,12 @@ Table 1
 <code>proliferation</code></h3>
 <p>Firstly, let’s see the default behaviours of TCRanker with only basic
 parameters provided.</p>
-<p>Query is the Seurat or SingleCellExperiment object with the
-expression matrix and, optimally, TCR as well.</p>
+<p><code>query</code> is the Seurat or SingleCellExperiment object with
+the expression matrix and, optimally, TCR as well.</p>
 <p>Besides the query data set, the column names of TCR clonotype in
-meta.data also need to be specified. It’s also possible to present the
-clonotype as a separated vector, but such practice is not
-recommended.</p>
+meta.data also need to be specified to <code>tcr</code>. It’s also
+possible to present the clonotype as a separated vector, but such
+practice is not recommended.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ranking.B16 <span class="ot">&lt;-</span> <span class="fu">TCRanker</span>(<span class="at">query =</span> query.b16, <span class="at">tcr =</span> <span class="st">&quot;clonotype&quot;</span>)</span></code></pre></div>
 <pre><code>## Filtering CD8T Cells. Set filterCell=&#39;none&#39; to disable pre-filtering</code></pre>
 <pre><code>## 
@@ -4098,11 +4098,11 @@ them, make sure to provide a custom gene signature instead.</p>
 </div>
 <div id="parameters-group-minclonsize" class="section level3">
 <h3>Parameters: <code>group</code>, <code>minClonSize</code></h3>
-<p>The parameter group would lead TCRanker to add a column of group and,
-sequentially, sub-divide the entry by the group, (i.e. the same
-clonotype might be divided into two or more sub-group and listed
-separately in the output if the cells with the same TCR clonotype are
-from different groups.)</p>
+<p>The parameter <code>group</code> would lead TCRanker to add a column
+of group and, sequentially, sub-divide the entry by the group, (i.e. the
+cells with the same TCR clonotype but from different groups might be
+divided into two or more sub-group and listed separately in the
+output.)</p>
 <p>It’s optional, yet recommended to be included in order to obtain more
 meaningful result if your data is from multiple individuals or sample
 groups.</p>
@@ -4116,19 +4116,17 @@ Table 3
 </center>
 <p><br />
 </p>
-<p>This is the output with group. You should have noticed that, despite
-of having group to sub-divide the same clonotype, the number of entries
-in table 3 is even smaller than table 2. This is due to
-<code>minClonSize=5</code> setting as default. When sub-divided into
-smaller clonal groups, some of them might fall below the threshold of 5
-cells to be considered as meaningfully expanded. The number is
-changeable.</p>
+<p>This is the output with group. Among 80 entries, there are only 66
+unique clonotypes. You should have noticed that the number of unique
+clonotypes decreased in table 3 comparing to table 2. This is due to the
+<code>minClonSize=5</code> setting: when sub-divided into smaller clonal
+groups, some might fall below the threshold of 5 cells to be considered
+as meaningfully expanded. The number is changeable.</p>
 </div>
 <div id="parameters-signature" class="section level3">
 <h3>Parameters: <code>signature</code></h3>
 <p>In order to extend the functionality, custom gene signatures are also
 allowed to analyse more wanted clonal states.</p>
-<p>The default signatures should be in the</p>
 <p>Here we use the signature of CD8<sup>+</sup> naive-like and
 precursor-exhausted <a href="https://www.nature.com/articles/s41467-021-23324-4">Andreatta et
 al., 2021</a> as examples:</p>
@@ -4162,8 +4160,8 @@ Table 4
 <ul>
 <li><p><code>keepObject</code>: Logical, to return the
 <code>SingleCellExperiment/Saurat</code> object after cell filtering or
-not (returned together with the ranking data frame in a list). FALSE by
-default.</p></li>
+not (returned together with the ranking data frame in a list).
+<code>FALSE</code> by default.</p></li>
 <li><p><code>assay</code>:<br />
 Name of expression data assay, By default “counts” for
 <code>SingleCellExperiment</code> and “RNA” for
@@ -4177,14 +4175,14 @@ numeric vector or list as input and return a single numeric. By default,
 it uses “mean”.</p></li>
 <li><p><code>strictFilter</code>: Logical, to exclude impure cells in
 pure clonotype or not. Only valid when <code>filterCell</code> is on.
-TRUE by default.</p></li>
+<code>TRUE</code> by default.</p></li>
 </ul>
 <hr />
 <p>Now we have the clonal ranking of a certain cell state. In order to
 bridge the current format of clonotypes with further lab validation or
 comparison, you might need to assemble the TCR to the full sequence
 instead of a simple combination of cdr3 chains.</p>
-<p>There should be plenty of tool available. For the demonstration of
+<p>There should be plenty of tools available. For the demonstration of
 how to generate the full sequence with <code>stitchr</code> by <a href="https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkac190/6553689">Heather
 et al., Nucleic Acids Research (2022)</a>, you can check <a href="https://carmonalab.github.io/TCRanker.demo/stitchr.html">TCRanker.stitchr</a>.</p>
 </div>

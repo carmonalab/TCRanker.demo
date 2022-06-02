@@ -80,11 +80,11 @@ Table 1
 Firstly, let's see the default behaviours of TCRanker with only basic parameters
 provided.
 
-Query is the Seurat or SingleCellExperiment object with the expression matrix
+`query` is the Seurat or SingleCellExperiment object with the expression matrix
 and, optimally, TCR as well.
 
 Besides the query data set, the column names of TCR clonotype in meta.data also 
-need to be specified. It's also possible to present the clonotype as a separated 
+need to be specified to `tcr`. It's also possible to present the clonotype as a separated 
 vector, but such practice is not recommended.
 
 ```{r, cache=TRUE}
@@ -118,10 +118,10 @@ them, make sure to provide a custom gene signature instead.
 
 ### Parameters: `group`, `minClonSize`
 
-The parameter group would lead TCRanker to add a column of group and, 
-sequentially, sub-divide the entry by the group, (i.e. the same clonotype might 
-be divided into two or more sub-group and listed separately in the output if the
-cells with the same TCR clonotype are from different groups.)
+The parameter `group` would lead TCRanker to add a column of group and, 
+sequentially, sub-divide the entry by the group, (i.e. the cells with the same
+TCR clonotype but from different groups might be divided into two or more 
+sub-group and listed separately in the output.)
 
 It's optional, yet recommended to be included in order to obtain more meaningful
 result if your data is from multiple individuals or sample groups.
@@ -141,19 +141,17 @@ Table 3
 </center>
 \
 
-This is the output with group. You should have noticed that, despite of having
-group to sub-divide the same clonotype, the number of entries in table 3 is
-even smaller than table 2. This is due to `minClonSize=5` setting as default.
-When sub-divided into smaller clonal groups, some of them might fall below the
-threshold of 5 cells to be considered as meaningfully expanded. The number is
-changeable.
+This is the output with group. Among 80 entries, there are only
+`r length(unique(ranking.b16$clonotype))` unique clonotypes. You should have
+noticed that the number of unique clonotypes decreased in table 3 comparing to
+table 2. This is due to the `minClonSize=5` setting: when sub-divided into
+smaller clonal groups, some might fall below the threshold of 5 cells to be
+considered as meaningfully expanded. The number is changeable.
 
 ### Parameters: `signature`
 
 In order to extend the functionality, custom gene signatures are also allowed
 to analyse more wanted clonal states.
-
-The default signatures should be in the 
 
 Here we use the signature of CD8^+^ naive-like and precursor-exhausted 
 [Andreatta et al., 2021](https://www.nature.com/articles/s41467-021-23324-4)
@@ -169,6 +167,7 @@ Tpex <- c('Lag3', 'Xcl1', 'Crtam', 'Ifng', 'Ccl4', 'Pdcd1', 'Dusp4', 'Cd8a',
 
 customSignatures <- list(naiveLike = naiveLike, Tpex = Tpex)
 ```
+
 Wrap your custom signatures in a list. And remember to name the entries to avoid
 ambiguity in the output. 
 
@@ -198,7 +197,7 @@ Table 4
 
 - `keepObject`:
 Logical, to return the `SingleCellExperiment/Saurat` object after cell filtering
-or not (returned together with the ranking data frame in a list). FALSE by 
+or not (returned together with the ranking data frame in a list). `FALSE` by 
 default.
 
 - `assay`: 	
@@ -216,7 +215,7 @@ return a single numeric. By default, it uses "mean".
 
 - `strictFilter`:
 Logical, to exclude impure cells in pure clonotype or not. Only valid when
-`filterCell` is on. TRUE by default.
+`filterCell` is on. `TRUE` by default.
 
 ---
 
@@ -225,7 +224,7 @@ current format of clonotypes with further lab validation or comparison, you
 might need to assemble the TCR to the full sequence instead of a simple
 combination of cdr3 chains.
 
-There should be plenty of tool available. For the demonstration of how to 
+There should be plenty of tools available. For the demonstration of how to 
 generate the full sequence with `stitchr` by [Heather et al., Nucleic Acids Research (2022)](https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkac190/6553689),
 you can check [TCRanker.stitchr](https://carmonalab.github.io/TCRanker.demo/stitchr.html).
 
