@@ -59,6 +59,7 @@ supp$fname
 Among what we have in the supplementary files, what we need are the expression matrix and TCR matrix:
 ```{r}
 supp <- supp[c(2,4),]
+supp
 ```
 
 ---
@@ -135,6 +136,9 @@ Now we can combine the scTCR-seq data into the Seurat object
 ```{r}
 query.b16 <- combineExpression(combined, query.b16, cloneCall = "gene", groupBy = "none")
 query.b16$clonotype <- query.b16$CTaa
+
+query.b16
+colnames(query.b16@meta.data)
 ```
 
 ```{r}

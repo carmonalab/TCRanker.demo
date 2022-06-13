@@ -20,15 +20,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 In this demonstration, We used the paired scRNA-seq and scTCR-seq of CD8^+^ TILs from C57BL/6 (n=4) and PMEL (n=3) mice bearing B16-F10 melanoma tumor from the study by [Carmona et al., OncoImmunology (2020)](https://www.tandfonline.com/doi/full/10.1080/2162402X.2020.1737369)
 
+**NOTE: here we should explain in one paragraph what TCRanker does, and what we can expect from this demo.**
+
 ---
 
-#  Library Preparation
+# Installation
 
-Firstly, install TCRanker as well as its dependency [UCell](https://bioconductor.org/packages/release/bioc/html/UCell.html) and [scGate](https://github.com/carmonalab/scGate).
+Firstly, install TCRanker. To filter high-quality T cells, TCRanker uses [scGate](https://github.com/carmonalab/scGate), which
+should also be installed.
 ```{r, message=FALSE, warning=FALSE}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install("UCell")
 remotes::install_github("carmonalab/scGate")
 remotes::install_github("carmonalab/TCRanker")
 
@@ -36,19 +38,18 @@ library(scGate)
 library(TCRanker)
 ```
 
-And we'll need some other packages to complete the workflow:
-```{r}
-library(Seurat)
-```
-
 # Data Set
 
 To know how to prepare the input data set for TCRanker, please refer [TCRanker preparation](https://carmonalab.github.io/TCRanker.demo/preparation.html).
 
 ```{r}
-setwd(getwd())
+library(Seurat)
+
+setwd(getwd()) #this command doesn't do anything ;)
+
 outDir <- paste0(getwd(),'/output') # Director for output files
-query.b16 <- readRDS(file = paste0(outDir,'/query.b16.RDS'))
+query.b16 <- readRDS(file = paste0(outDir,'/query.b16.RDS'))  ### I think we should put this file in a downloadable location, for
+     #users who wants to avoid running the preprocessing script
 ```
 
 ---
@@ -103,6 +104,7 @@ demonstration.
 And this is the output data frame we'd have:
 
 ```{r, echo=FALSE}
+library(DT)
 DT::datatable(ranking.B16)
 ```
 <center>
@@ -130,6 +132,14 @@ result if your data is from multiple individuals or sample groups.
 ranking.b16 <- TCRanker(query = query.b16, tcr = "clonotype", 
                         group = "Sample", filterCell = "none",
                         proliferation = F)
+
+
+##I get this error:
+# Filtering none Cells. Set filterCell=NULL to disable pre-filtering
+# Error in 1:nrow(scGate.table) : argument of length 0
+
+#filterCell should be set to NULL perhaps?
+
 ```
 
 
@@ -176,7 +186,7 @@ state would be called "user" in the output.
 
 ```{r, cache=TRUE, message=FALSE}
 ranking.b16 <- TCRanker(query = query.b16, tcr = "clonotype", 
-                        group = "Sample", filterCell = "none",
+                        group = "Sample", filterCell = "none",  #NULL?
                         signature = customSignatures)
 ```
 
