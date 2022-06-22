@@ -105,7 +105,6 @@ demonstration.
 And this is the output data frame we'd have:
 
 ```{r, echo=FALSE}
-library(DT)
 DT::datatable(ranking.B16)
 ```
 <center>
