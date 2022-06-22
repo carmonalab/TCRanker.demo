@@ -6,7 +6,7 @@ date: '2022-05-19'
 css: custom1.css
 output: rmdformats::readthedown
 knit: (function(inputFile, encoding) { 
-      out_dir <- 'doc';
+      out_dir <- 'docs';
       rmarkdown::render(inputFile,
                         encoding=encoding, 
                         output_file=file.path(dirname(inputFile), out_dir, 'preparation.html')) })

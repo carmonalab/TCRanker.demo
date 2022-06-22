@@ -1360,25 +1360,32 @@ et al., OncoImmunology (2020)</a></p>
 ## [4] &quot;GSE116390_aggregated_matrix.tar.gz&quot;</code></pre>
 <p>Among what we have in the supplementary files, what we need are the
 expression matrix and TCR matrix:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>supp <span class="ot">&lt;-</span> supp[<span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">4</span>),]</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>supp <span class="ot">&lt;-</span> supp[<span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">4</span>),]</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>supp</span></code></pre></div>
+<pre><code>##                                  fname
+## 2 GSE116390_VDJ_annotations.csv.tar.gz
+## 4   GSE116390_aggregated_matrix.tar.gz
+##                                                                                                       url
+## 2 https://ftp.ncbi.nlm.nih.gov/geo/series/GSE116nnn/GSE116390/suppl//GSE116390_VDJ_annotations.csv.tar.gz
+## 4   https://ftp.ncbi.nlm.nih.gov/geo/series/GSE116nnn/GSE116390/suppl//GSE116390_aggregated_matrix.tar.gz</code></pre>
 <hr />
 </div>
 <div id="scrna-seq" class="section level1">
 <h1>scRNA-seq</h1>
 <p>Firstly, we load the expression matrix:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">seq_along</span>(supp)){</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    fileDir <span class="ot">&lt;-</span> <span class="fu">paste0</span>(inDir, <span class="st">&#39;/&#39;</span>, id, <span class="st">&#39;/&#39;</span>, supp<span class="sc">$</span>fname[i])</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">download.file</span>(<span class="at">url =</span> supp<span class="sc">$</span>url[i], <span class="at">destfile =</span> fileDir)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    fileFolder <span class="ot">&lt;-</span> <span class="fu">sub</span>(<span class="st">&quot;.tar.gz&quot;</span>, <span class="st">&quot;&quot;</span>, fileDir)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">untar</span>(fileDir, <span class="at">exdir =</span> fileFolder)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rownames</span>(supp)[i] <span class="ot">&lt;-</span> fileFolder</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>} <span class="co">#Downloading and decompressing the file, might be different for other entries with different directory structures.</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>expMat <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="fu">sub</span>(<span class="st">&quot;.tar.*&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="fu">rownames</span>(supp)[<span class="dv">2</span>]))</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>query.b16 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> expMat, <span class="at">project =</span> projectID, </span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">50</span>)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">substring</span>(<span class="fu">colnames</span>(query.b16), <span class="dv">18</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="fu">seq_along</span>(supp)){</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    fileDir <span class="ot">&lt;-</span> <span class="fu">paste0</span>(inDir, <span class="st">&#39;/&#39;</span>, id, <span class="st">&#39;/&#39;</span>, supp<span class="sc">$</span>fname[i])</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">download.file</span>(<span class="at">url =</span> supp<span class="sc">$</span>url[i], <span class="at">destfile =</span> fileDir)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    fileFolder <span class="ot">&lt;-</span> <span class="fu">sub</span>(<span class="st">&quot;.tar.gz&quot;</span>, <span class="st">&quot;&quot;</span>, fileDir)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">untar</span>(fileDir, <span class="at">exdir =</span> fileFolder)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rownames</span>(supp)[i] <span class="ot">&lt;-</span> fileFolder</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>} <span class="co">#Downloading and decompressing the file, might be different for other entries with different directory structures.</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>expMat <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="fu">sub</span>(<span class="st">&quot;.tar.*&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="fu">rownames</span>(supp)[<span class="dv">2</span>]))</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>query.b16 <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> expMat, <span class="at">project =</span> projectID, </span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">50</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">substring</span>(<span class="fu">colnames</span>(query.b16), <span class="dv">18</span>))</span></code></pre></div>
 <pre><code>## 
 ##    1    2    3    4    5    6    7 
 ##  519  686 1756  609  552  801 2251</code></pre>
@@ -1417,12 +1424,12 @@ Table 2
 </center>
 <p><br />
 </p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>libIDtoSampleID <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&#39;PMEL1&#39;</span>, <span class="st">&#39;WT1&#39;</span>, <span class="st">&#39;WT3&#39;</span>, <span class="st">&#39;PMEL3&#39;</span>, <span class="st">&#39;PMEL2&#39;</span>, <span class="st">&#39;WT2&#39;</span>, <span class="st">&#39;WT4&#39;</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(libIDtoSampleID) <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">7</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>query.b16<span class="sc">$</span>Sample <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(libIDtoSampleID[<span class="fu">substring</span>(<span class="fu">colnames</span>(query.b16), <span class="dv">18</span>)])</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(query.b16<span class="sc">$</span>Sample)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>libIDtoSampleID <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&#39;PMEL1&#39;</span>, <span class="st">&#39;WT1&#39;</span>, <span class="st">&#39;WT3&#39;</span>, <span class="st">&#39;PMEL3&#39;</span>, <span class="st">&#39;PMEL2&#39;</span>, <span class="st">&#39;WT2&#39;</span>, <span class="st">&#39;WT4&#39;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(libIDtoSampleID) <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">7</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>query.b16<span class="sc">$</span>Sample <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(libIDtoSampleID[<span class="fu">substring</span>(<span class="fu">colnames</span>(query.b16), <span class="dv">18</span>)])</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(query.b16<span class="sc">$</span>Sample)</span></code></pre></div>
 <pre><code>## 
 ## PMEL1 PMEL2 PMEL3   WT1   WT2   WT3   WT4 
 ##   519   552   609   686   801  1756  2251</code></pre>
@@ -1433,29 +1440,38 @@ were correct.</p>
 <div id="sctcr-seq" class="section level1">
 <h1>scTCR-seq</h1>
 <p>Secondly, we load the TCR matrix:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>vdj.list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (sampleID <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">7</span>) {</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    sample <span class="ot">&lt;-</span> libIDtoSampleID[sampleID]</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    vdj <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/%s_VDJ_annotations.csv&quot;</span>, </span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">rownames</span>(supp)[<span class="dv">1</span>], sample), <span class="at">as.is =</span> T)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    vdj<span class="sc">$</span>barcode <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="fu">sub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">d&quot;</span>, <span class="st">&quot;&quot;</span>, vdj<span class="sc">$</span>barcode), sampleID)</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    vdj<span class="sc">$</span>raw_clonotype_id <span class="ot">&lt;-</span> <span class="fu">paste0</span>(vdj<span class="sc">$</span>raw_clonotype_id, <span class="st">&quot;-&quot;</span>, sampleID) <span class="co">#Reassign sample ID to the barcodes</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    vdj.list[[sampleID]] <span class="ot">&lt;-</span> vdj</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">#Combine α and β chains (cdr3 segments)</span></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>combined <span class="ot">&lt;-</span> <span class="fu">combineTCR</span>(vdj.list, <span class="at">ID =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sample=</span>libIDtoSampleID, <span class="at">cells =</span> <span class="st">&quot;T-AB&quot;</span>, <span class="at">removeNA =</span> T, <span class="at">filterMulti=</span>T)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">#Strip barcodes</span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(combined)) {</span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    combined[[i]] <span class="ot">&lt;-</span> <span class="fu">stripBarcode</span>(combined[[i]], <span class="at">column =</span> <span class="dv">1</span>, <span class="at">connector =</span> <span class="st">&quot;_&quot;</span>, <span class="at">num_connects =</span> <span class="dv">3</span>)</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>vdj.list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (sampleID <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">7</span>) {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    sample <span class="ot">&lt;-</span> libIDtoSampleID[sampleID]</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    vdj <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">sprintf</span>(<span class="st">&quot;%s/%s_VDJ_annotations.csv&quot;</span>, </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">rownames</span>(supp)[<span class="dv">1</span>], sample), <span class="at">as.is =</span> T)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    vdj<span class="sc">$</span>barcode <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="fu">sub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">d&quot;</span>, <span class="st">&quot;&quot;</span>, vdj<span class="sc">$</span>barcode), sampleID)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    vdj<span class="sc">$</span>raw_clonotype_id <span class="ot">&lt;-</span> <span class="fu">paste0</span>(vdj<span class="sc">$</span>raw_clonotype_id, <span class="st">&quot;-&quot;</span>, sampleID) <span class="co">#Reassign sample ID to the barcodes</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    vdj.list[[sampleID]] <span class="ot">&lt;-</span> vdj</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co">#Combine α and β chains (cdr3 segments)</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>combined <span class="ot">&lt;-</span> <span class="fu">combineTCR</span>(vdj.list, <span class="at">ID =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sample=</span>libIDtoSampleID, <span class="at">cells =</span> <span class="st">&quot;T-AB&quot;</span>, <span class="at">removeNA =</span> T, <span class="at">filterMulti=</span>T)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">#Strip barcodes</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(combined)) {</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    combined[[i]] <span class="ot">&lt;-</span> <span class="fu">stripBarcode</span>(combined[[i]], <span class="at">column =</span> <span class="dv">1</span>, <span class="at">connector =</span> <span class="st">&quot;_&quot;</span>, <span class="at">num_connects =</span> <span class="dv">3</span>)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Now we can combine the scTCR-seq data into the Seurat object</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>query.b16 <span class="ot">&lt;-</span> <span class="fu">combineExpression</span>(combined, query.b16, <span class="at">cloneCall =</span> <span class="st">&quot;gene&quot;</span>, <span class="at">groupBy =</span> <span class="st">&quot;none&quot;</span>)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>query.b16<span class="sc">$</span>clonotype <span class="ot">&lt;-</span> query.b16<span class="sc">$</span>CTaa</span></code></pre></div>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Save the RDS for later usage</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(query.b16, <span class="at">file =</span> <span class="fu">paste0</span>(outDir,<span class="st">&#39;/query.b16.RDS&#39;</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>query.b16 <span class="ot">&lt;-</span> <span class="fu">combineExpression</span>(combined, query.b16, <span class="at">cloneCall =</span> <span class="st">&quot;gene&quot;</span>, <span class="at">groupBy =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>query.b16<span class="sc">$</span>clonotype <span class="ot">&lt;-</span> query.b16<span class="sc">$</span>CTaa</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>query.b16</span></code></pre></div>
+<pre><code>## An object of class Seurat 
+## 14445 features across 7174 samples within 1 assay 
+## Active assay: RNA (14445 features, 0 variable features)</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(query.b16<span class="sc">@</span>meta.data)</span></code></pre></div>
+<pre><code>##  [1] &quot;orig.ident&quot;   &quot;nCount_RNA&quot;   &quot;nFeature_RNA&quot; &quot;Sample&quot;       &quot;barcode&quot;     
+##  [6] &quot;CTgene&quot;       &quot;CTnt&quot;         &quot;CTaa&quot;         &quot;CTstrict&quot;     &quot;Frequency&quot;   
+## [11] &quot;cloneType&quot;    &quot;clonotype&quot;</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Save the RDS for later usage</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(query.b16, <span class="at">file =</span> <span class="fu">paste0</span>(outDir,<span class="st">&#39;/query.b16.RDS&#39;</span>))</span></code></pre></div>
 <hr />
 <p>Now we have the data set prepared in the format of Seurat object.</p>
 <p>For the demonstration of how to use the TCRanker package, you can

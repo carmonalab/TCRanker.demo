@@ -6,7 +6,7 @@ date: '2022-05-19'
 css: custom2.css
 output: rmdformats::readthedown
 knit: (function(inputFile, encoding) { 
-      out_dir <- 'doc';
+      out_dir <- 'docs';
       rmarkdown::render(inputFile,
                         encoding=encoding, 
                         output_file=file.path(dirname(inputFile), out_dir, 'demo.html')) })
@@ -18,9 +18,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
+TCRanker is a tool to predict the tumor-reactivity of TCRs. It takes as input scRNA-seq data paired with scTCR-seq data, filters cell type wanted (CD8^+^ T cells by default), and ranks TCRs in a tumor sample according to their likelihood to recognize tumor antigens. To rank TCRs, TCRanker evaluates T cell clonal expansion and T cell transcriptional features associated with tumor reactivity, mainly exhaustion level, in each T cell clonotype.
+
 In this demonstration, We used the paired scRNA-seq and scTCR-seq of CD8^+^ TILs from C57BL/6 (n=4) and PMEL (n=3) mice bearing B16-F10 melanoma tumor from the study by [Carmona et al., OncoImmunology (2020)](https://www.tandfonline.com/doi/full/10.1080/2162402X.2020.1737369)
 
-**NOTE: here we should explain in one paragraph what TCRanker does, and what we can expect from this demo.**
 
 ---
 
@@ -45,11 +46,11 @@ To know how to prepare the input data set for TCRanker, please refer [TCRanker p
 ```{r}
 library(Seurat)
 
-setwd(getwd()) #this command doesn't do anything ;)
-
 outDir <- paste0(getwd(),'/output') # Director for output files
-query.b16 <- readRDS(file = paste0(outDir,'/query.b16.RDS'))  ### I think we should put this file in a downloadable location, for
-     #users who wants to avoid running the preprocessing script
+download.file(url = 'https://figshare.com/ndownloader/files/35983556?private_link=cc77615ad7bb69dd59ca',
+              destfile = paste0(outDir,'/query.b16.RDS')) 
+
+query.b16 <- readRDS(paste0(outDir,'/query.b16.RDS'))
 ```
 
 ---
@@ -130,16 +131,8 @@ result if your data is from multiple individuals or sample groups.
 
 ```{r, cache=TRUE, message=FALSE}
 ranking.b16 <- TCRanker(query = query.b16, tcr = "clonotype", 
-                        group = "Sample", filterCell = "none",
+                        group = "Sample", filterCell = NULL,
                         proliferation = F)
-
-
-##I get this error:
-# Filtering none Cells. Set filterCell=NULL to disable pre-filtering
-# Error in 1:nrow(scGate.table) : argument of length 0
-
-#filterCell should be set to NULL perhaps?
-
 ```
 
 
@@ -186,7 +179,7 @@ state would be called "user" in the output.
 
 ```{r, cache=TRUE, message=FALSE}
 ranking.b16 <- TCRanker(query = query.b16, tcr = "clonotype", 
-                        group = "Sample", filterCell = "none",  #NULL?
+                        group = "Sample", filterCell = NULL,
                         signature = customSignatures)
 ```
 

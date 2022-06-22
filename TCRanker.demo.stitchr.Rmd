@@ -6,7 +6,7 @@ date: '2022-05-19'
 css: custom3.css
 output: rmdformats::readthedown
 knit: (function(inputFile, encoding) { 
-      out_dir <- 'doc';
+      out_dir <- 'docs';
       rmarkdown::render(inputFile,
                         encoding=encoding, 
                         output_file=file.path(dirname(inputFile), out_dir, 'stitchr.html')) })
@@ -31,7 +31,6 @@ From the instruction of stitchr on [Github page](https://github.com/JamieHeather
 To know how to use TCRanker, please refer [TCRanker demonstration](https://carmonalab.github.io/TCRanker.demo/demo.html).
 
 ```{r}
-setwd(getwd())
 inDir <- paste0(getwd(),'/input') # Directory for input files
 outDir <- paste0(getwd(),'/output') # Director for output files
 query.b16 <- readRDS(file = paste0(outDir,'/query.b16.RDS'))
